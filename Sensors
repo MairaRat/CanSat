@@ -1,0 +1,94 @@
+/***************************************************************************
+This included libraries for the BMP280 humidity, temperature &amp; pressure sensor
+Adafruit_MLX90614.h
+Adafruit_SHT31.h
+DFRobot_MICS.h
+DEV_Config.h
+#include &quot;L76X.h
+Written by Limor Fried &amp; Kevin Townsend for Adafruit Industries.
+BSD license, all text above must be included in any redistribution
+Modified by Maira Ratnarajah for Cansat project. This into the final code.
+********************************************************************
+
+#include &lt;SoftwareSerial.h&gt;
+#include &lt;Wire.h&gt;
+#include &lt;SPI.h&gt;
+#include &lt;Adafruit_BMP280.h&gt;
+#include &quot;Adafruit_SHT31.h&quot;
+#include &quot;DFRobot_MICS.h&quot;
+#include &quot;DEV_Config.h&quot;
+//#include &quot;L76X.h&quot;
+#include &lt;Wire.h&gt;
+#include &quot;Adafruit_SI1145.h&quot;
+//NRMC GPS1;
+
+Adafruit_BMP280 bmp; // use I2C interface
+Adafruit_Sensor *bmp_temp = bmp.getTemperatureSensor();
+Adafruit_Sensor *bmp_pressure = bmp.getPressureSensor();
+
+bool enableHeater = false;
+uint8_t loopCnt = 0;
+Adafruit_SHT31 sht31 = Adafruit_SHT31();
+String txData;
+#define Mics_I2C_ADDRESS 0x75
+DFRobot_MICS_I2C mics(&amp;Wire, Mics_I2C_ADDRESS);
+Adafruit_SI1145 uv = Adafruit_SI1145();
+void setup() {
+Serial.begin(9600);
+while ( !Serial ) delay(100); // wait for native usb
+
+29
+
+/* Default settings from datasheet. */
+bmp.setSampling(Adafruit_BMP280::MODE_NORMAL, /* Operating Mode. */
+Adafruit_BMP280::SAMPLING_X2, /* Temp. oversampling */
+Adafruit_BMP280::SAMPLING_X16, /* Pressure oversampling */
+Adafruit_BMP280::FILTER_X16, /* Filtering. */
+Adafruit_BMP280::STANDBY_MS_500); /* Standby time. */
+bmp_temp-&gt;printSensorDetails();
+}
+void loop() {
+sensors_event_t temp_event, pressure_event;
+bmp_temp-&gt;getEvent(&amp;temp_event);
+bmp_pressure-&gt;getEvent(&amp;pressure_event);
+int16_t ox_data = mics.getADCData(OX_MODE);
+float temp = sht31.readTemperature();
+float humi = sht31.readHumidity();
+float UVindex = uv.readUV();
+// the index is multiplied by 100 so to get the
+// integer index, divide by 100!
+UVindex /= 100.0;
+txData = &quot;T1 = &quot;;
+txData = txData + String(temp_event.temperature);
+txData = txData + &quot;,T2 = &quot;;
+txData = txData + String(temp);
+txData = txData + &quot;,P = &quot;;
+txData = txData + String(pressure_event.pressure);
+txData = txData + &quot;,H = &quot;;
+txData = txData + String(humi);
+txData = txData + &quot;,CO = &quot;;
+txData = txData + String(ox_data);
+txData = txData + &quot;,UV = &quot;;
+txData = txData + String(UVindex);
+txData = txData + &quot;,IR = &quot;;
+txData = txData + String(uv.readIR);
+txData = txData + &quot;\n&quot;;
+Serial.print(txData);
+
+delay(1000);
+
+// Toggle heater enabled state every 30 seconds
+
+30
+
+// An ~3.0 degC temperature increase can be noted when heater is enabled
+if (loopCnt &gt;= 30) {
+enableHeater = !enableHeater;
+sht31.heater(enableHeater);
+if (sht31.isHeaterEnabled())
+else
+loopCnt = 0;
+}
+loopCnt++;
+
+}
