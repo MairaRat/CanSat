@@ -1,0 +1,83 @@
+Programme to analyse the data
+import pandas as pd
+import numpy as np
+from matplotlib import pyplot as plt
+# define sensor number and types
+sensorType = [&#39;temperature_1&#39;, &#39;temperature_2&#39;, &#39;pressure&#39;, &#39;humidity&#39;, &#39;co
+concentration&#39;]
+sensorUnit = [&#39;C&#39;, &#39;C&#39;, &#39;hPa&#39;, &#39;%&#39;, &#39;ppm&#39;]
+numSensorType = len(sensorType)
+# load data
+readData = pd.read_csv(&#39;sensorData.csv&#39;)
+sensorData = np.array(readData)
+# plot data
+plt.figure()
+for i in range(0, numSensorType):
+    plt.subplot(3, 3, i+1)
+    plt.plot(sensorData[:, i])
+    plt.xlabel(&#39;# of samples&#39;)
+    plt.ylabel(sensorUnit[i])
+    plt.legend([sensorType[i]])
+plt.show()
+
+Programme to receive the data
+###########################################################################
+########
+# this code is used to receive the data from the serial and save it into a
+csv file
+###########################################################################
+########
+import matplotlib.pyplot as plt
+# import pylab as pl
+import serial.tools.list_ports
+import time
+import pandas as pd
+
+31
+
+import numpy as np
+# define parameters
+numRxTime = 50                    # number of Rx times
+sensorType = [&#39;temperature_1&#39;, &#39;temperature_2&#39;, &#39;pressure&#39;, &#39;humidity&#39;, &#39;CO
+concentration&#39;]
+sensorUnit = [&#39;C&#39;, &#39;C&#39;,  &#39;hPa&#39;, &#39;%&#39;, &#39;ppm&#39;]
+numSensorType = len(sensorType)  # number of sensor types
+# define serial communication setting
+portName = &#39;COM3&#39;
+baudRate = 9600
+timeOut = 3
+stopBits = 1
+ser = serial.Serial(portName, baudRate, bytesize=8,
+parity=serial.PARITY_NONE, stopbits=stopBits, timeout=timeOut)
+# initialize
+sensorData = np.zeros([numRxTime, numSensorType], dtype=float)
+count = 0
+# start receiving data
+while count &lt; numRxTime:
+    readIn = ser.readline()
+    if len(readIn) &gt; 50:
+        print(readIn)
+        sensorData[count, 0] = float(readIn[5:10])
+        sensorData[count, 1] = float(readIn[16:21])
+        sensorData[count, 2] = float(readIn[26:33])
+        sensorData[count, 3] = float(readIn[38:43])
+        sensorData[count, 4] = float(readIn[49:50])
+        #sensorData[count, 5] = float(readIn[60:65])
+        #sensorData[count, 6] = float(readIn[70:73])
+        #if sensorData[count, 6] &gt; upper_co2
+            #print(&#39;...&#39;)
+        count = count + 1
+        time.sleep(1)
+ser.close()
+# plot the sensor data with time
+plt.figure()
+for i in range(0, numSensorType):
+    plt.subplot(3, 3, i+1)
+    plt.plot(sensorData[:, i])
+    plt.xlabel(&#39;# of samples&#39;)
+    plt.ylabel(sensorUnit[i])
+    plt.legend([sensorType[i]])
+plt.show()
+# save data
+saveData = pd.DataFrame(columns=sensorType, data=sensorData)
+saveData.to_csv(&#39;sensorData.csv&#39;, index=False, sep=&#39;,&#39;)
